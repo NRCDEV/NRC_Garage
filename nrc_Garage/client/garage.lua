@@ -1,12 +1,5 @@
 ESX = nil 
-isMenuOpen = false
-
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-
-local garage_menu = RageUI.CreateMenu(nil, "Garage")
-garage_menu.Closed = function ()
-    isMenuOpen = false
-end
 
 Garage = {
     vehiclelist = {}
@@ -14,33 +7,31 @@ Garage = {
 
 -- Menu du garage
 local function opengarage()
-    if not isMenuOpen then
-        isMenuOpen = true
-        RageUI.Visible(garage_menu, true)
-        CreateThread(function()
-            while isMenuOpen do
-                RageUI.IsVisible(garage_menu, function()
-                    RageUI.Separator("~g~↓~s~    Liste de véhicule(s)    ~g~↓")
-                    RageUI.Separator("__________________")
-                    for i = 1, #Garage.vehiclelist, 1 do
-                        local hash = Garage.vehiclelist[i].vehicle.model
-                        local model = Garage.vehiclelist[i].vehicle
-                        local nomvehicle = GetDisplayNameFromVehicleModel(hash)
-                        local text = GetLabelText(nomvehicle)
-                        local plaque = Garage.vehiclelist[i].plate 
+    local garage_menu = RageUI.CreateMenu(nil, "Garage")
+    RageUI.Visible(garage_menu, true)
+    while garage_menu do
+        Wait(0)   
+        RageUI.IsVisible(garage_menu, function()
+            RageUI.Separator("~g~↓~s~    Liste de véhicule(s)    ~g~↓")
+            RageUI.Separator("__________________")
+            for i = 1, #Garage.vehiclelist, 1 do
+                local hash = Garage.vehiclelist[i].vehicle.model
+                local model = Garage.vehiclelist[i].vehicle
+                local nomvehicle = GetDisplayNameFromVehicleModel(hash)
+                local text = GetLabelText(nomvehicle)
+                local plaque = Garage.vehiclelist[i].plate 
 
-                        RageUI.Button(text.." | ~b~"..plaque, nil, {}, true, {
-                            onSelected = function()
-                                SpawnVehicle(model, plaque)
-                                RageUI.CloseAll()
-                                isMenuOpen = false
-                            end
-                        })
+                RageUI.Button(text.." | ~b~"..plaque, nil, {}, true, {
+                    onSelected = function()
+                        SpawnVehicle(model, plaque)
+                        RageUI.CloseAll()
                     end
-                end)
-            Wait(0)      
+                })
             end
-        end)
+        end)  
+        if not RageUI.Visible(garage_menu) then 
+            garage_menu = RMenu:DeleteType('garage_menu', true)
+        end  
     end
 end
 
@@ -50,43 +41,45 @@ CreateThread(function()
         local internal = 250 
         
         for k, v in pairs(Config.sortie) do
-            local plyCoords = GetEntityCoords(GetPlayerPed(-1), false)
+            local plyCoords = GetEntityCoords(PlayerPedId(), false)
             local pos = Config.sortie
             local dist = Vdist(plyCoords.x, plyCoords.y, plyCoords.z, pos[k].x, pos[k].y, pos[k].z)
 
             if dist <= 15 then
                 interval = 0
                 DrawMarker(36, pos[k].x, pos[k].y, pos[k].z, 0.0, 0.0, 0.0, 0.0,0.0,0.0, 1.5, 1.5, 1.5, 47, 232, 64, 255, false, true, p19, true)
-            end
-
-            if dist <= 2 then
-                interval = 0
-                ESX.ShowHelpNotification("Appuyer sur [~g~E~s~] pour accéder au garage")
-                if IsControlJustPressed(1, 51) then
-                    ESX.TriggerServerCallback("nrc:vehiclelist", function(ownedCars)
-                        Garage.vehiclelist = ownedCars
-                    end)
-                    opengarage()
+                if dist <= 2 then
+                    interval = 0
+                    ESX.ShowHelpNotification("Appuyer sur [~g~E~s~] pour accéder au garage")
+                    if IsControlJustPressed(1, 51) then
+                        ESX.TriggerServerCallback("nrc:vehiclelist", function(ownedCars)
+                            Garage.vehiclelist = ownedCars
+                        end)
+                        opengarage()
+                    end
                 end
+            else 
+                Wait(internal)
             end
         end
 
         for k, v in pairs(Config.rentrer) do
-            local plyCoords = GetEntityCoords(GetPlayerPed(-1), false)
+            local plyCoords = GetEntityCoords(PlayerPedId(), false)
             local pos = Config.rentrer
             local dist = Vdist(plyCoords.x, plyCoords.y, plyCoords.z, pos[k].x, pos[k].y, pos[k].z)
 
             if dist <= 15 then
                 interval = 0
                 DrawMarker(36, pos[k].x, pos[k].y, pos[k].z, 0.0, 0.0, 0.0, 0.0,0.0,0.0, 1.5, 1.5, 1.5, 190, 0, 0, 255, false, true, p19, true)
-            end
-
-            if dist <= 2 then
-                interval = 0
-                ESX.ShowHelpNotification("Appuyer sur [~r~E~s~] pour ranger votre véhicule")
-                if IsControlJustPressed(1, 51) then
-                    ReturnVeh()
+                if dist <= 2 then
+                    interval = 0
+                    ESX.ShowHelpNotification("Appuyer sur [~r~E~s~] pour ranger votre véhicule")
+                    if IsControlJustPressed(1, 51) then
+                        ReturnVeh()
+                    end
                 end
+            else 
+                Wait(internal)
             end
         end
     Wait(0)
@@ -96,7 +89,7 @@ end)
 -- Spawn du véhicule 
 
 function SpawnVehicle(vehicle, plate)
-    x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(-1),true))
+    x,y,z = table.unpack(GetEntityCoords(PlayerPedId(),true))
 
 	ESX.Game.SpawnVehicle(vehicle.model, {
 		x = x,
@@ -110,7 +103,7 @@ function SpawnVehicle(vehicle, plate)
 		SetVehicleUndriveable(callback_vehicle, false)
 		SetVehicleEngineOn(callback_vehicle, true, true)
 		SetVehicleBodyHealth(callback_vehicle, 1000)
-		TaskWarpPedIntoVehicle(GetPlayerPed(-1), callback_vehicle, -1)
+		TaskWarpPedIntoVehicle(PlayerPedId(), callback_vehicle, -1)
 	end)
     TriggerServerEvent("nrc:breakveh", plate, false)
 end
@@ -118,13 +111,13 @@ end
 -- Rentrer le véhicule
 
 function ReturnVeh()
-    local playerPed = GetPlayerPed(-1)
+    local playerPed = PlayerPedId()
     if IsPedInAnyVehicle(playerPed, false) then 
-        local playerPed = GetPlayerPed(-1)
+        local playerPed = PlayerPedId()
         local pos = GetEntityCoords(playerPed)
         local vehicle = GetVehiclePedIsIn(playerPed, false)
         local Propsvehicle = ESX.Game.GetVehicleProperties(vehicle)
-        local current = GetPlayersLastVehicle(GetPlayerPed(-1), true)
+        local current = GetPlayersLastVehicle(PlayerPedId(), true)
         local engineH = GetVehicleEngineHealth(current)
         local plate = Propsvehicle.plate
 
@@ -132,7 +125,7 @@ function ReturnVeh()
             if valid then 
                 BreakReturnVehicle(vehicle, Propsvehicle)
             else
-                ESX.ShowNotification("Tu ne peut pas garer ce véhicule")
+                ESX.ShowNotification("Tu ne peux pas garer ce véhicule")
             end
         end, Propsvehicle)
     else 
@@ -143,7 +136,7 @@ end
 function BreakReturnVehicle(vehicle, Propsvehicle)
 	ESX.Game.DeleteVehicle(vehicle)
 	TriggerServerEvent('nrc:breakveh', Propsvehicle.plate, true)
-	ESX.ShowNotification("Tu vien de ranger ton ~r~véhicule ~s~!")
+	ESX.ShowNotification("Tu viens de ranger ton ~r~véhicule ~s~!")
 end
 
 CreateThread(function ()

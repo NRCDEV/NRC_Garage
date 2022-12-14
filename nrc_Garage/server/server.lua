@@ -7,17 +7,17 @@ TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 ESX.RegisterServerCallback("nrc:vehiclelist", function(source, cb)
     local ownedCars =  {}
     local xPlayer = ESX.GetPlayerFromId(source)
-        MySQL.Async.fetchAll('SELECT * FROM owned_vehicles WHERE owner = @owner AND Type = @Type AND `stored` = @stored', {
-            ['@owner'] = xPlayer.identifier,
-            ['@Type'] = 'car',
-            ['@stored'] = true
-        }, function(data)
-            for k, v in pairs(data) do
-                local vehicle = json.decode(v.vehicle)
-                table.insert(ownedCars, {vehicle = vehicle, stored = v.stored, plate = v.plate})
-            end
-            cb(ownedCars)
-        end)
+	MySQL.Async.fetchAll('SELECT * FROM owned_vehicles WHERE owner = @owner AND Type = @Type AND `stored` = @stored', {
+		['@owner'] = xPlayer.identifier,
+		['@Type'] = 'car',
+		['@stored'] = true
+	}, function(data)
+		for k, v in pairs(data) do
+			local vehicle = json.decode(v.vehicle)
+			table.insert(ownedCars, {vehicle = vehicle, stored = v.stored, plate = v.plate})
+		end
+		cb(ownedCars)
+	end)
 end)
 
 RegisterServerEvent("nrc:breakveh")
